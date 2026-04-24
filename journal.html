@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Daily Journal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body { font-family: Arial, sans-serif; background: #f5f1e9; padding: 20px; color: #3e4e3c; }
+h1 { text-align: center; color: #5a7d5a; }
+.journal-container {
+  max-width: 600px; margin: auto; background: #ffffff;
+  padding: 25px; border-radius: 15px; box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+}
+.date { text-align: center; margin-bottom: 15px; font-weight: bold; color: #5a7d5a; }
+textarea {
+  width: 100%; height: 250px; padding: 12px; border-radius: 10px;
+  border: 1px solid #ccc; font-size: 16px; resize: none; transition: 0.3s; box-sizing: border-box;
+}
+textarea:focus { outline: none; border-color: #7ca982; box-shadow: 0 0 5px rgba(124,169,130,0.5); }
+button {
+  margin-top: 15px; width: 100%; padding: 12px; background: #7ca982;
+  color: white; border: none; border-radius: 10px; font-size: 16px; cursor: pointer; transition: 0.3s;
+}
+button:hover { background: #5a7d5a; transform: scale(1.02); }
+.saved { text-align: center; margin-top: 10px; color: #5a7d5a; opacity: 0; transition: opacity 0.5s; }
+#loadingMsg { text-align: center; color: #7ca982; font-style: italic; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<h1>📝 Daily Journal</h1>
+
+<div class="journal-container">
+  <div class="date" id="todayDate"></div>
+  <div id="loadingMsg">Loading today's entry...</div>
+  <textarea id="journalText" placeholder="Write about your day here..."></textarea>
+  <button id="saveBtn">Save Entry</button>
+  <div class="saved" id="savedMsg">✔ Journal saved successfully</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+  // ✅ CORRECT Firebase Config
+  const firebaseConfig = {
+    apiKey:            "AIzaSyAMFdAhbM8jMZurek9zwN92LZfM_-Qz3wI",
+    authDomain:        "mental-wellness-tracker-5f6f1.firebaseapp.com",
+    projectId:         "mental-wellness-tracker-5f6f1",
+    storageBucket:     "mental-wellness-tracker-5f6f1.firebasestorage.app",
+    messagingSenderId: "421375166970",
+    appId:             "1:421375166970:web:a1cdbd9382a546ac80bc43"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  const today    = new Date();
+  const dateKey  = today.toISOString().split("T")[0]; // e.g. "2026-04-24"
+
+  document.getElementById("todayDate").innerText = "Date: " + dateKey;
+
+  // Load today's entry from Firebase
+  db.collection("journals").doc(dateKey).get()
+    .then(function(docSnap) {
+      if (docSnap.exists) {
+        document.getElementById("journalText").value = docSnap.data().text || "";
+      }
+      document.getElementById("loadingMsg").style.display = "none";
+    });
+
+  // Save entry to Firebase
+  document.getElementById("saveBtn").addEventListener("click", function() {
+    const text = document.getElementById("journalText").value;
+    db.collection("journals").doc(dateKey).set({
+      text:    text,
+      date:    dateKey,
+      savedAt: new Date().toISOString()
+    }).then(function() {
+      const savedMsg = document.getElementById("savedMsg");
+      savedMsg.style.opacity = "1";
+      setTimeout(function() { savedMsg.style.opacity = "0"; }, 2000);
+    });
+  });
+</script>
+</body>
+</html>

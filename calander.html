@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mental Wellness Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body { font-family: Arial, sans-serif; background: #f5f1e9; padding: 20px; color: #3e4e3c; }
+h1, h2 { text-align: center; color: #5a7d5a; }
+.streak { text-align: center; font-size: 18px; margin-bottom: 15px; }
+.calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; max-width: 500px; margin: auto; }
+.day { padding: 15px; background: #ffffff; text-align: center; border-radius: 10px; cursor: pointer; transition: 0.3s; }
+.day:hover { transform: scale(1.05); background: #eef7f0; }
+.selected { border: 2px solid #5a7d5a; }
+.happy { background: #c8e6c9; }
+.neutral { background: #f3e5ab; }
+.sad { background: #f5b7b1; }
+.mood-select { text-align: center; margin-top: 15px; }
+.mood-btn { padding: 8px 15px; margin: 5px; border: none; border-radius: 20px; cursor: pointer; background: #7ca982; color: white; transition: 0.3s; }
+.mood-btn:hover { background: #5a7d5a; }
+.journal { max-width: 500px; margin: 30px auto; }
+textarea { width: 100%; height: 120px; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
+button { margin-top: 10px; padding: 10px; width: 100%; background: #7ca982; color: white; border: none; border-radius: 8px; cursor: pointer; }
+button:hover { background: #5a7d5a; }
+#msg { text-align: center; margin-top: 10px; color: #5a7d5a; }
+#loading { text-align: center; color: #7ca982; font-style: italic; margin: 10px; }
+</style>
+</head>
+<body>
+
+<h1>🌿 Mood Tracker</h1>
+<div class="streak">🔥 Streak: <span id="streak">0</span> days</div>
+<div id="loading">Loading your data...</div>
+<div class="calendar" id="calendar"></div>
+
+<div class="mood-select">
+  <button class="mood-btn" id="btnHappy">😊 Happy</button>
+  <button class="mood-btn" id="btnNeutral">😐 Neutral</button>
+  <button class="mood-btn" id="btnSad">😔 Sad</button>
+</div>
+
+<div class="journal">
+  <h2>📝 Daily Notes</h2>
+  <p id="selectedDate">Select a date</p>
+  <textarea id="journalText" placeholder="Write your thoughts..."></textarea>
+  <button id="saveBtn">Save Notes</button>
+  <p id="msg"></p>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+  // ✅ CORRECT Firebase Config
+  const firebaseConfig = {
+    apiKey:            "AIzaSyAMFdAhbM8jMZurek9zwN92LZfM_-Qz3wI",
+    authDomain:        "mental-wellness-tracker-5f6f1.firebaseapp.com",
+    projectId:         "mental-wellness-tracker-5f6f1",
+    storageBucket:     "mental-wellness-tracker-5f6f1.firebasestorage.app",
+    messagingSenderId: "421375166970",
+    appId:             "1:421375166970:web:a1cdbd9382a546ac80bc43"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  let data = {};
+  let selectedDate = null;
+
+  const calendar       = document.getElementById("calendar");
+  const streakEl       = document.getElementById("streak");
+  const journalText    = document.getElementById("journalText");
+  const selectedDateEl = document.getElementById("selectedDate");
+  const msg            = document.getElementById("loading");
+
+  const now   = new Date();
+  const year  = now.getFullYear();
+  const month = now.getMonth();
+  const days  = new Date(year, month + 1, 0).getDate();
+
+  // Load all calendar data from Firebase
+  async function loadAllData() {
+    const snapshot = await db.collection("calendar").get();
+    snapshot.forEach(function(docSnap) {
+      data[docSnap.id] = docSnap.data();
+    });
+    document.getElementById("loading").style.display = "none";
+    renderCalendar();
+    calculateStreak();
+  }
+
+  function renderCalendar() {
+    calendar.innerHTML = "";
+    for (let d = 1; d <= days; d++) {
+      const key = year + "-" + (month + 1) + "-" + d;
+      const div = document.createElement("div");
+      div.className = "day";
+      div.innerText = d;
+      if (data[key] && data[key].mood) div.classList.add(data[key].mood);
+      div.addEventListener("click", (function(k, el) {
+        return function() { selectDate(k, el); };
+      })(key, div));
+      calendar.appendChild(div);
+    }
+  }
+
+  function selectDate(key, element) {
+    selectedDate = key;
+    selectedDateEl.innerText = "Date: " + key;
+    journalText.value = (data[key] && data[key].journal) ? data[key].journal : "";
+    document.querySelectorAll(".day").forEach(function(d) { d.classList.remove("selected"); });
+    element.classList.add("selected");
+  }
+
+  // Mood buttons
+  document.getElementById("btnHappy").addEventListener("click",   function() { setMood("happy"); });
+  document.getElementById("btnNeutral").addEventListener("click", function() { setMood("neutral"); });
+  document.getElementById("btnSad").addEventListener("click",     function() { setMood("sad"); });
+
+  async function setMood(mood) {
+    if (!selectedDate) { alert("Select a date first!"); return; }
+    data[selectedDate] = data[selectedDate] || {};
+    data[selectedDate].mood = mood;
+    await db.collection("calendar").doc(selectedDate).set(data[selectedDate], { merge: true });
+    renderCalendar();
+    calculateStreak();
+    document.getElementById("msg").innerText = "✅ Mood saved!";
+    setTimeout(function() { document.getElementById("msg").innerText = ""; }, 2000);
+  }
+
+  // Save journal
+  document.getElementById("saveBtn").addEventListener("click", async function() {
+    if (!selectedDate) { alert("Select a date first!"); return; }
+    data[selectedDate] = data[selectedDate] || {};
+    data[selectedDate].journal = journalText.value;
+    await db.collection("calendar").doc(selectedDate).set(data[selectedDate], { merge: true });
+    document.getElementById("msg").innerText = "✅ Saved successfully!";
+    setTimeout(function() { document.getElementById("msg").innerText = ""; }, 2000);
+  });
+
+  function calculateStreak() {
+    let streak = 0;
+    const today = new Date();
+    for (let i = 0; i < 365; i++) {
+      const d = new Date();
+      d.setDate(today.getDate() - i);
+      const key = d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+      if (data[key] && data[key].mood) streak++;
+      else break;
+    }
+    streakEl.innerText = streak;
+  }
+
+  loadAllData();
+</script>
+</body>
+</html>

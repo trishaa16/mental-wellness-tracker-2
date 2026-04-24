@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mental Wellness Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f5f1e9;
+  color: #3e4e3c;
+}
+
+/* HEADER */
+header {
+  padding: 70px 20px;
+  text-align: center;
+  background: linear-gradient(to right, #7ca982, #d8c3a5);
+}
+
+header h1 {
+  color: #ffffff;
+  font-size: 38px;
+}
+
+header p {
+  color: #fdfdfd;
+  max-width: 550px;
+  margin: auto;
+}
+
+/* BUTTONS */
+.hero-buttons a {
+  display: inline-block;
+  margin: 10px;
+  padding: 12px 28px;
+  background: #ffffff;
+  color: #5a7d5a;
+  border-radius: 25px;
+  text-decoration: none;
+  transition: 0.3s;
+}
+
+.hero-buttons a:hover {
+  background: #d6eadf;
+  transform: scale(1.05);
+}
+
+/* SECTION */
+section {
+  padding: 60px 20px;
+  text-align: center;
+}
+
+h2 {
+  color: #5a7d5a;
+}
+
+/* FEATURES */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 25px;
+  max-width: 900px;
+  margin: auto;
+}
+
+.feature-card {
+  background: #ffffff;
+  padding: 25px;
+  border-radius: 15px;
+  transition: 0.3s;
+  cursor: pointer;
+}
+
+.feature-card:hover {
+  transform: translateY(-8px);
+  background: #eef7f0;
+}
+
+/* MOOD SELECT */
+.mood-section {
+  margin-top: 40px;
+}
+
+.mood-btn {
+  padding: 10px 18px;
+  margin: 8px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  background: #7ca982;
+  color: white;
+  transition: 0.3s;
+}
+
+.mood-btn:hover {
+  background: #5a7d5a;
+}
+
+#result {
+  margin-top: 15px;
+  font-size: 16px;
+}
+
+/* FOOTER */
+footer {
+  background: #d8c3a5;
+  padding: 20px;
+  text-align: center;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>🌿 Mental Wellness Tracker</h1>
+  <p>
+    Track your emotions, reflect daily, and build a peaceful routine.
+  </p>
+
+  <div class="hero-buttons">
+    <a href="calander.html">📅 Mood Calendar</a>
+    <a href="journal.html">📝 Daily Journal</a>
+  </div>
+</header>
+
+<section>
+  <h2>Why Mental Wellness?</h2>
+  <p>
+    Taking care of your mind helps improve focus, happiness, and overall life balance.
+  </p>
+</section>
+
+<section>
+  <h2>✨ Features</h2>
+
+  <div class="features-grid">
+    <div class="feature-card" 
+      <h3>Daily Mood</h3>
+      <p>Log how you feel every day.</p>
+    </div>
+
+    <div class="feature-card" 
+      <h3>Mood Streaks</h3>
+      <p>Stay consistent with tracking.</p>
+    </div>
+
+    <div class="feature-card" 
+      <h3>Journal</h3>
+      <p>Express thoughts and feelings.</p>
+    </div>
+  </div>
+
+  <p id="feature-msg"></p>
+</section>
+
+<footer>
+  2026 Web Tech Project 
+</footer>
+
+<script>
+function setMood(mood) {
+  document.getElementById("result").innerText =
+    "You selected: " + mood;
+}
+
+function showFeature(text) {
+  document.getElementById("feature-msg").innerText = text;
+}
+</script>
+<h2>Mental Wellness Tracker</h2>
+
+<button onclick="saveMood('😊 Happy')">Happy</button>
+<button onclick="saveMood('😢 Sad')">Sad</button>
+<button onclick="saveMood('😐 Neutral')">Neutral</button>
+
+<ul id="moodList"></ul>
+<script type="module">
+  // 🔥 Import Firebase
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, addDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyAJlWRR3cm3ckpQ8SnGp40fvMrt_RZd5dI",
+    authDomain: "mental-wellness-tracker-b85e4.firebaseapp.com",
+    projectId: "mental-wellness-tracker-b85e4",
+    storageBucket: "mental-wellness-tracker-b85e4.firebasestorage.app",
+    messagingSenderId: "1059302688039",
+    appId: "1:1059302688039:web:bfe4732ab7736b477f1502",
+    measurementId: "G-JNV7R0LG4K"
+  };
+
+  // Initialize
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // ✅ Save Mood
+  async function saveMood(mood) {
+    await addDoc(collection(db, "moods"), {
+      mood: mood,
+      time: new Date()
+    });
+    loadMoods(); // refresh list
+  }
+
+  // ✅ Load Moods
+  async function loadMoods() {
+    const querySnapshot = await getDocs(collection(db, "moods"));
+    const list = document.getElementById("moodList");
+    list.innerHTML = "";
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const li = document.createElement("li");
+      li.textContent = data.mood + " - " + new Date(data.time.seconds * 1000).toLocaleString();
+      list.appendChild(li);
+    });
+  }
+
+  // Make functions usable in HTML
+  window.saveMood = saveMood;
+  window.loadMoods = loadMoods;
+
+  // Load on start
+  loadMoods();
+</script>
+
+</body>
+</html>
